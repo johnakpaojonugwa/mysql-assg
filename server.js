@@ -36,7 +36,11 @@ const PORT = process.env.PORT || 5002;
 const startServer = async () => {
     try {
         const databaseConnection = await pool.getConnection();
+        
+        await databaseConnection.ping();
+        
         console.log('✅ Database connection successful');
+
         databaseConnection.release();
 
         await UserModel.createTable();
@@ -46,6 +50,7 @@ const startServer = async () => {
         await CartItemModel.createTable();
         await OrderModel.createTable();
         await OrderItemModel.createTable();
+        
         console.log('✅ Database tables initialized');
 
         app.listen(PORT, () => {
