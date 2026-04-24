@@ -1,0 +1,997 @@
+{
+  "baseURL": "http://localhost:5002",
+  "authentication": {
+    "type": "Bearer Token",
+    "header": "Authorization",
+    "format": "Bearer {accessToken}",
+    "note": "Required for all endpoints except public product endpoints and auth endpoints"
+  },
+  "endpoints": [
+    {
+      "category": "Authentication",
+      "prefix": "/api/auth",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/register",
+          "fullPath": "/api/auth/register",
+          "description": "Register a new user account",
+          "requiresAuth": false,
+          "role": "none",
+          "rateLimit": "5 requests per 15 minutes",
+          "requestBody": {
+            "full_name": {
+              "type": "string",
+              "required": true,
+              "example": "John Doe",
+              "constraints": "2-100 characters"
+            },
+            "email": {
+              "type": "string",
+              "required": true,
+              "example": "john@example.com",
+              "constraints": "Valid email format, unique"
+            },
+            "password": {
+              "type": "string",
+              "required": true,
+              "example": "SecurePass123!",
+              "constraints": "8-72 chars, uppercase, lowercase, number, symbol"
+            },
+            "age": {
+              "type": "integer",
+              "required": false,
+              "example": 25,
+              "constraints": "0-100 or null"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "User registered successfully",
+            "data": {
+              "userId": "USER_123456",
+              "email": "john@example.com",
+              "fullName": "John Doe",
+              "role": "customer"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/login",
+          "fullPath": "/api/auth/login",
+          "description": "Login with email and password",
+          "requiresAuth": false,
+          "role": "none",
+          "rateLimit": "5 requests per 15 minutes",
+          "requestBody": {
+            "email": {
+              "type": "string",
+              "required": true,
+              "example": "john@example.com"
+            },
+            "password": {
+              "type": "string",
+              "required": true,
+              "example": "SecurePass123!"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Login successful",
+            "data": {
+              "accessToken": "jwt_access_token",
+              "refreshToken": "jwt_refresh_token",
+              "user": {
+                "userId": "USER_123456",
+                "email": "john@example.com",
+                "fullName": "John Doe",
+                "role": "customer"
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/refresh",
+          "fullPath": "/api/auth/refresh",
+          "description": "Get a new access token using refresh token",
+          "requiresAuth": false,
+          "role": "none",
+          "requestBody": {
+            "refreshToken": {
+              "type": "string",
+              "required": true,
+              "example": "jwt_refresh_token"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Token refreshed successfully",
+            "data": {
+              "accessToken": "new_jwt_access_token"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/logout",
+          "fullPath": "/api/auth/logout",
+          "description": "Logout and invalidate tokens",
+          "requiresAuth": false,
+          "role": "none",
+          "requestBody": {
+            "refreshToken": {
+              "type": "string",
+              "required": true,
+              "example": "jwt_refresh_token"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Logout successful"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Users (Self Service)",
+      "prefix": "/api/users",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/me",
+          "fullPath": "/api/users/me",
+          "description": "Get current authenticated user's profile",
+          "requiresAuth": true,
+          "role": "any",
+          "queryParams": {},
+          "response": {
+            "success": true,
+            "data": {
+              "userId": "USER_123456",
+              "email": "john@example.com",
+              "fullName": "John Doe",
+              "age": 25,
+              "role": "customer",
+              "createdAt": "2025-01-15T10:30:00Z"
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/me",
+          "fullPath": "/api/users/me",
+          "description": "Update current user's profile",
+          "requiresAuth": true,
+          "role": "any",
+          "requestBody": {
+            "full_name": {
+              "type": "string",
+              "required": false,
+              "example": "Jane Doe",
+              "constraints": "2-100 characters"
+            },
+            "age": {
+              "type": "integer",
+              "required": false,
+              "example": 26,
+              "constraints": "0-100 or null"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Profile updated successfully",
+            "data": {
+              "userId": "USER_123456",
+              "fullName": "Jane Doe",
+              "age": 26
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/me/password",
+          "fullPath": "/api/users/me/password",
+          "description": "Change current user's password",
+          "requiresAuth": true,
+          "role": "any",
+          "requestBody": {
+            "current_password": {
+              "type": "string",
+              "required": true,
+              "example": "OldPass123!"
+            },
+            "new_password": {
+              "type": "string",
+              "required": true,
+              "example": "NewPass456!",
+              "constraints": "8-72 chars, uppercase, lowercase, number, symbol"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Password changed successfully"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Admin - User Management",
+      "prefix": "/api/admin",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/users",
+          "fullPath": "/api/admin/users",
+          "description": "Get all users (admin only)",
+          "requiresAuth": true,
+          "role": "admin",
+          "queryParams": {
+            "limit": {
+              "type": "integer",
+              "example": 10,
+              "description": "Number of users to return"
+            },
+            "offset": {
+              "type": "integer",
+              "example": 0,
+              "description": "Pagination offset"
+            }
+          },
+          "response": {
+            "success": true,
+            "data": [
+              {
+                "userId": "USER_123456",
+                "email": "john@example.com",
+                "fullName": "John Doe",
+                "age": 25,
+                "role": "customer",
+                "createdAt": "2025-01-15T10:30:00Z"
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/users/:userId",
+          "fullPath": "/api/admin/users/USER_123456",
+          "description": "Get specific user by ID (admin only)",
+          "requiresAuth": true,
+          "role": "admin",
+          "pathParams": {
+            "userId": {
+              "type": "string",
+              "required": true,
+              "example": "USER_123456",
+              "description": "The user ID to retrieve"
+            }
+          },
+          "response": {
+            "success": true,
+            "data": {
+              "userId": "USER_123456",
+              "email": "john@example.com",
+              "fullName": "John Doe",
+              "age": 25,
+              "role": "customer",
+              "createdAt": "2025-01-15T10:30:00Z"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "fullPath": "/api/admin/users",
+          "description": "Create a new user (admin only)",
+          "requiresAuth": true,
+          "role": "admin",
+          "requestBody": {
+            "full_name": {
+              "type": "string",
+              "required": true,
+              "example": "Jane Doe",
+              "constraints": "2-100 characters"
+            },
+            "email": {
+              "type": "string",
+              "required": true,
+              "example": "jane@example.com",
+              "constraints": "Valid email, unique"
+            },
+            "password": {
+              "type": "string",
+              "required": true,
+              "example": "SecurePass123!",
+              "constraints": "8-72 chars, uppercase, lowercase, number, symbol"
+            },
+            "role": {
+              "type": "string",
+              "required": false,
+              "example": "customer",
+              "constraints": "'customer' or 'admin', defaults to 'customer'"
+            },
+            "age": {
+              "type": "integer",
+              "required": false,
+              "example": 28,
+              "constraints": "0-100 or null"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "User created successfully",
+            "data": {
+              "userId": "USER_789012",
+              "email": "jane@example.com",
+              "fullName": "Jane Doe",
+              "role": "customer"
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/users/:userId",
+          "fullPath": "/api/admin/users/USER_123456",
+          "description": "Update user by ID (admin only)",
+          "requiresAuth": true,
+          "role": "admin",
+          "pathParams": {
+            "userId": {
+              "type": "string",
+              "required": true,
+              "example": "USER_123456"
+            }
+          },
+          "requestBody": {
+            "full_name": {
+              "type": "string",
+              "required": false,
+              "example": "John Updated"
+            },
+            "role": {
+              "type": "string",
+              "required": false,
+              "example": "admin",
+              "constraints": "'customer' or 'admin'"
+            },
+            "age": {
+              "type": "integer",
+              "required": false,
+              "example": 26
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "User updated successfully"
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/users/:userId",
+          "fullPath": "/api/admin/users/USER_123456",
+          "description": "Delete user by ID (admin only)",
+          "requiresAuth": true,
+          "role": "admin",
+          "pathParams": {
+            "userId": {
+              "type": "string",
+              "required": true,
+              "example": "USER_123456"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "User deleted successfully"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Products",
+      "prefix": "/api/products",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/",
+          "fullPath": "/api/products",
+          "description": "Get all products (public)",
+          "requiresAuth": false,
+          "role": "none",
+          "queryParams": {
+            "category": {
+              "type": "string",
+              "example": "Electronics",
+              "description": "Filter by category"
+            },
+            "limit": {
+              "type": "integer",
+              "example": 20,
+              "description": "Number of products per page"
+            },
+            "offset": {
+              "type": "integer",
+              "example": 0,
+              "description": "Pagination offset"
+            }
+          },
+          "response": {
+            "success": true,
+            "data": [
+              {
+                "productId": "PROD_123456",
+                "name": "Product Name",
+                "description": "Product description",
+                "price": 99.99,
+                "stockQuantity": 50,
+                "category": "Electronics",
+                "sku": "SKU123",
+                "imageUrl": "https://example.com/image.jpg",
+                "isActive": true,
+                "createdAt": "2025-01-15T10:30:00Z"
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/:productId",
+          "fullPath": "/api/products/PROD_123456",
+          "description": "Get specifbic product by ID (public)",
+          "requiresAuth": false,
+          "role": "none",
+          "pathParams": {
+            "productId": {
+              "type": "string",
+              "required": true,
+              "example": "PROD_123456"
+            }
+          },
+          "response": {
+            "success": true,
+            "data": {
+              "productId": "PROD_123456",
+              "name": "Product Name",
+              "description": "Product description",
+              "price": 99.99,
+              "stockQuantity": 50,
+              "category": "Electronics",
+              "sku": "SKU123",
+              "imageUrl": "https://example.com/image.jpg",
+              "isActive": true,
+              "createdAt": "2025-01-15T10:30:00Z"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/",
+          "fullPath": "/api/products",
+          "description": "Create a new product (admin only)",
+          "requiresAuth": true,
+          "role": "admin",
+          "requestBody": {
+            "name": {
+              "type": "string",
+              "required": true,
+              "example": "Wireless Headphones",
+              "constraints": "3-255 characters"
+            },
+            "description": {
+              "type": "string",
+              "required": false,
+              "example": "High-quality wireless headphones with noise cancellation"
+            },
+            "price": {
+              "type": "number",
+              "required": true,
+              "example": 149.99,
+              "constraints": "Positive number, max 999999.99"
+            },
+            "stock_quantity": {
+              "type": "integer",
+              "required": true,
+              "example": 100,
+              "constraints": "Non-negative integer"
+            },
+            "category": {
+              "type": "string",
+              "required": false,
+              "example": "Electronics",
+              "constraints": "2-100 characters"
+            },
+            "sku": {
+              "type": "string",
+              "required": false,
+              "example": "WH-NC-001",
+              "constraints": "3+ characters, unique"
+            },
+            "image_url": {
+              "type": "string",
+              "required": false,
+              "example": "https://example.com/headphones.jpg"
+            },
+            "is_active": {
+              "type": "boolean",
+              "required": false,
+              "example": true,
+              "constraints": "Defaults to true"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Product created successfully",
+            "data": {
+              "productId": "PROD_123456",
+              "name": "Wireless Headphones",
+              "price": 149.99,
+              "stockQuantity": 100
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/:productId",
+          "fullPath": "/api/products/PROD_123456",
+          "description": "Update product by ID (admin only)",
+          "requiresAuth": true,
+          "role": "admin",
+          "pathParams": {
+            "productId": {
+              "type": "string",
+              "required": true,
+              "example": "PROD_123456"
+            }
+          },
+          "requestBody": {
+            "name": {
+              "type": "string",
+              "required": false,
+              "example": "Updated Product Name"
+            },
+            "description": {
+              "type": "string",
+              "required": false,
+              "example": "Updated description"
+            },
+            "price": {
+              "type": "number",
+              "required": false,
+              "example": 159.99
+            },
+            "stock_quantity": {
+              "type": "integer",
+              "required": false,
+              "example": 95
+            },
+            "category": {
+              "type": "string",
+              "required": false,
+              "example": "Audio"
+            },
+            "sku": {
+              "type": "string",
+              "required": false,
+              "example": "WH-NC-002"
+            },
+            "image_url": {
+              "type": "string",
+              "required": false,
+              "example": "https://example.com/new-image.jpg"
+            },
+            "is_active": {
+              "type": "boolean",
+              "required": false,
+              "example": false
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Product updated successfully"
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/:productId",
+          "fullPath": "/api/products/PROD_123456",
+          "description": "Delete product by ID (admin only)",
+          "requiresAuth": true,
+          "role": "admin",
+          "pathParams": {
+            "productId": {
+              "type": "string",
+              "required": true,
+              "example": "PROD_123456"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Product deleted successfully"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Shopping Cart",
+      "prefix": "/api/cart",
+      "requiresAuth": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/",
+          "fullPath": "/api/cart",
+          "description": "Get current user's shopping cart",
+          "requiresAuth": true,
+          "role": "any",
+          "response": {
+            "success": true,
+            "data": {
+              "cartId": "CART_123456",
+              "userId": "USER_123456",
+              "items": [
+                {
+                  "cartItemId": "CI_789012",
+                  "productId": "PROD_123456",
+                  "productName": "Wireless Headphones",
+                  "quantity": 2,
+                  "price": 149.99,
+                  "subtotal": 299.98
+                }
+              ],
+              "totalItems": 1,
+              "totalPrice": 299.98,
+              "createdAt": "2025-01-15T10:30:00Z"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/items",
+          "fullPath": "/api/cart/items",
+          "description": "Add item to cart",
+          "requiresAuth": true,
+          "role": "any",
+          "requestBody": {
+            "product_id": {
+              "type": "string",
+              "required": true,
+              "example": "PROD_123456"
+            },
+            "quantity": {
+              "type": "integer",
+              "required": true,
+              "example": 2,
+              "constraints": "Positive integer"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Item added to cart",
+            "data": {
+              "cartItemId": "CI_789012",
+              "productId": "PROD_123456",
+              "quantity": 2
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/items/:cartItemId",
+          "fullPath": "/api/cart/items/CI_789012",
+          "description": "Update cart item quantity",
+          "requiresAuth": true,
+          "role": "any",
+          "pathParams": {
+            "cartItemId": {
+              "type": "string",
+              "required": true,
+              "example": "CI_789012"
+            }
+          },
+          "requestBody": {
+            "quantity": {
+              "type": "integer",
+              "required": true,
+              "example": 3,
+              "constraints": "Positive integer"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Cart item updated",
+            "data": {
+              "cartItemId": "CI_789012",
+              "quantity": 3
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/items/:cartItemId",
+          "fullPath": "/api/cart/items/CI_789012",
+          "description": "Remove item from cart",
+          "requiresAuth": true,
+          "role": "any",
+          "pathParams": {
+            "cartItemId": {
+              "type": "string",
+              "required": true,
+              "example": "CI_789012"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Item removed from cart"
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/",
+          "fullPath": "/api/cart",
+          "description": "Clear entire cart",
+          "requiresAuth": true,
+          "role": "any",
+          "response": {
+            "success": true,
+            "message": "Cart cleared successfully"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Orders",
+      "prefix": "/api/orders",
+      "requiresAuth": true,
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/",
+          "fullPath": "/api/orders",
+          "description": "Create order from shopping cart",
+          "requiresAuth": true,
+          "role": "any",
+          "rateLimit": "10 orders per 15 minutes per user",
+          "requestBody": {
+            "shippingAddress": {
+              "type": "string",
+              "required": true,
+              "example": "123 Main St, City, State 12345"
+            },
+            "shippingCity": {
+              "type": "string",
+              "required": true,
+              "example": "Springfield"
+            },
+            "shippingState": {
+              "type": "string",
+              "required": true,
+              "example": "IL"
+            },
+            "shippingZip": {
+              "type": "string",
+              "required": true,
+              "example": "62701"
+            },
+            "paymentMethod": {
+              "type": "string",
+              "required": true,
+              "example": "credit_card",
+              "constraints": "'credit_card', 'debit_card', 'paypal', etc."
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Order created successfully",
+            "data": {
+              "orderId": "ORD_123456",
+              "userId": "USER_123456",
+              "totalAmount": 299.98,
+              "status": "pending",
+              "items": [
+                {
+                  "orderId": "OI_789012",
+                  "productId": "PROD_123456",
+                  "productName": "Wireless Headphones",
+                  "quantity": 2,
+                  "price": 149.99
+                }
+              ],
+              "createdAt": "2025-01-15T10:30:00Z"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/",
+          "fullPath": "/api/orders",
+          "description": "Get orders (customers see their own, admins see all)",
+          "requiresAuth": true,
+          "role": "any",
+          "queryParams": {
+            "status": {
+              "type": "string",
+              "example": "pending",
+              "description": "Filter by order status"
+            },
+            "limit": {
+              "type": "integer",
+              "example": 10
+            },
+            "offset": {
+              "type": "integer",
+              "example": 0
+            }
+          },
+          "response": {
+            "success": true,
+            "data": [
+              {
+                "orderId": "ORD_123456",
+                "userId": "USER_123456",
+                "totalAmount": 299.98,
+                "status": "pending",
+                "createdAt": "2025-01-15T10:30:00Z"
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/:orderId",
+          "fullPath": "/api/orders/ORD_123456",
+          "description": "Get specific order (customers see their own, admins see any)",
+          "requiresAuth": true,
+          "role": "any",
+          "pathParams": {
+            "orderId": {
+              "type": "string",
+              "required": true,
+              "example": "ORD_123456"
+            }
+          },
+          "response": {
+            "success": true,
+            "data": {
+              "orderId": "ORD_123456",
+              "userId": "USER_123456",
+              "totalAmount": 299.98,
+              "status": "pending",
+              "items": [
+                {
+                  "orderId": "OI_789012",
+                  "productId": "PROD_123456",
+                  "quantity": 2,
+                  "price": 149.99
+                }
+              ],
+              "shippingAddress": "123 Main St, City, State 12345",
+              "createdAt": "2025-01-15T10:30:00Z"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/:orderId/track",
+          "fullPath": "/api/orders/ORD_123456/track",
+          "description": "Track order status (customers see their own, admins see any)",
+          "requiresAuth": true,
+          "role": "any",
+          "pathParams": {
+            "orderId": {
+              "type": "string",
+              "required": true,
+              "example": "ORD_123456"
+            }
+          },
+          "response": {
+            "success": true,
+            "data": {
+              "orderId": "ORD_123456",
+              "status": "pending",
+              "statusHistory": [
+                {
+                  "status": "pending",
+                  "timestamp": "2025-01-15T10:30:00Z",
+                  "description": "Order placed"
+                },
+                {
+                  "status": "processing",
+                  "timestamp": "2025-01-15T10:35:00Z",
+                  "description": "Payment received"
+                }
+              ],
+              "estimatedDelivery": "2025-01-22T23:59:59Z"
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/:orderId/status",
+          "fullPath": "/api/orders/ORD_123456/status",
+          "description": "Update order status (admin only)",
+          "requiresAuth": true,
+          "role": "admin",
+          "pathParams": {
+            "orderId": {
+              "type": "string",
+              "required": true,
+              "example": "ORD_123456"
+            }
+          },
+          "requestBody": {
+            "status": {
+              "type": "string",
+              "required": true,
+              "example": "shipped",
+              "constraints": "'pending', 'processing', 'shipped', 'delivered', 'cancelled'"
+            },
+            "notes": {
+              "type": "string",
+              "required": false,
+              "example": "Package on its way"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Order status updated",
+            "data": {
+              "orderId": "ORD_123456",
+              "status": "shipped"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/:orderId/cancel",
+          "fullPath": "/api/orders/ORD_123456/cancel",
+          "description": "Cancel order (customer can cancel own, admin can cancel any)",
+          "requiresAuth": true,
+          "role": "any",
+          "pathParams": {
+            "orderId": {
+              "type": "string",
+              "required": true,
+              "example": "ORD_123456"
+            }
+          },
+          "requestBody": {
+            "reason": {
+              "type": "string",
+              "required": false,
+              "example": "Changed my mind"
+            }
+          },
+          "response": {
+            "success": true,
+            "message": "Order cancelled successfully",
+            "data": {
+              "orderId": "ORD_123456",
+              "status": "cancelled"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "notes": {
+    "baseURL": "Update http://localhost:5002 to your actual server URL",
+    "authentication": "Include Authorization header with Bearer token for protected endpoints",
+    "roles": "customer role can access their own resources, admin role can access all resources",
+    "errorResponse": {
+      "success": false,
+      "message": "Error message describing what went wrong",
+      "errors": ["Detailed error information if applicable"]
+    },
+    "httpStatus": {
+      "200": "OK - Request successful",
+      "201": "Created - Resource successfully created",
+      "400": "Bad Request - Invalid parameters or data",
+      "401": "Unauthorized - Missing or invalid authentication",
+      "403": "Forbidden - Authenticated user lacks required permissions",
+      "404": "Not Found - Resource not found",
+      "429": "Too Many Requests - Rate limit exceeded",
+      "500": "Internal Server Error - Server-side error"
+    }
+  }
+}
